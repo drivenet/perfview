@@ -562,17 +562,22 @@ namespace PerfView
                                     ClrPrivateTraceEventParser.Keywords.Stack
                                 ));
 
-                            // Used to determine what is going on with tasks. 
-                            var netTaskStacks = stacksEnabled;
-                            if (TraceEventProviderOptions.FilteringSupported)
+                            if ((parsedArgs.KernelEvents & KernelTraceEventParser.Keywords.ThreadTime) == KernelTraceEventParser.Keywords.ThreadTime)
                             {
-                                // This turns on stacks only for TaskScheduled (7) TaskWaitSend (10) and AwaitTaskContinuationScheduled (12)
-                                netTaskStacks = new TraceEventProviderOptions() { EventIDStacksToEnable = new List<int>() { 7, 10, 12 } };
+                                // Used to determine what is going on with tasks. 
+                                var netTaskStacks = stacksEnabled;
+                                if (TraceEventProviderOptions.FilteringSupported)
+                                {
+                                    // This turns on stacks only for TaskScheduled (7) TaskWaitSend (10) and AwaitTaskContinuationScheduled (12)
+                                    netTaskStacks = new TraceEventProviderOptions() { EventIDStacksToEnable = new List<int>() { 7, 10, 12 } };
+                                    // This turns off high-traffic TPL events that are not used in neither thread time analysis nor activity tracking
+                                    netTaskStacks.EventIDsToDisable = new List<int>() { 13, 14, 15, 16, 17, 18 };
+                                }
+                                EnableUserProvider(userModeSession, ".NETTasks",
+                                    TplEtwProviderTraceEventParser.ProviderGuid, parsedArgs.ClrEventLevel,
+                                    (ulong)(TplEtwProviderTraceEventParser.Keywords.Default),
+                                    netTaskStacks);
                             }
-                            EnableUserProvider(userModeSession, ".NETTasks",
-                                TplEtwProviderTraceEventParser.ProviderGuid, parsedArgs.ClrEventLevel,
-                                (ulong)(TplEtwProviderTraceEventParser.Keywords.Default),
-                                netTaskStacks);
 
                             EnableUserProvider(userModeSession, ".NETFramework",
                                 FrameworkEventSourceTraceEventParser.ProviderGuid,
